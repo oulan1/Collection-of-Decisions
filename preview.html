@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сборник прикладных решений | Управление информацией</title>
+<style>
+:root {
+  --bg-dark: #07020d;
+  --bg-glow: #1a0b2e;
+  --glass-bg: rgba(20, 8, 36, 0.4);
+  --glass-border: rgba(157, 78, 221, 0.25);
+  --neon-accent: #9d4edf;
+  --text-main: #e2dbeb;
+  --text-muted: #a499b3;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; }
+body { background: radial-gradient(circle at 50% 0%, var(--bg-glow) 0%, var(--bg-dark) 80%); color: var(--text-main); min-height: 100vh; display: flex; overflow: hidden; }
+.glass { background: var(--glass-bg); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--glass-border); border-top: 1px solid rgba(255,255,255,0.1); border-left: 1px solid rgba(255,255,255,0.1); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+.app-container { display: flex; width: 100vw; height: 100vh; padding: 20px; gap: 20px; position: relative; }
+.mobile-header { display: none; align-items: center; justify-content: space-between; padding: 15px; margin-bottom: 15px; width: 100%; z-index: 100; }
+.menu-btn { background: rgba(157, 78, 221, 0.2); border: 1px solid var(--neon-accent); color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+.menu-btn:hover { background: var(--neon-accent); box-shadow: 0 0 15px var(--neon-accent); }
+aside.sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; padding: 25px 15px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; overflow-y: auto; justify-content: space-between; }
+.sidebar-top { display: flex; flex-direction: column; }
+.sidebar-brand { font-size: 1.15rem; font-weight: 800; color: #fff; text-align: center; margin-bottom: 30px; letter-spacing: 1px; text-transform: uppercase; text-shadow: 0 0 10px var(--neon-accent); }
+.nav-group { margin-bottom: 25px; }
+.nav-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; padding-left: 10px; }
+.nav-list { list-style: none; }
+.nav-item { padding: 10px 15px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main); margin-bottom: 4px; transition: all 0.3s ease; border: 1px solid transparent; }
+.nav-item:hover, .nav-item.active { background: rgba(157, 78, 221, 0.15); color: #fff; border: 1px solid rgba(157, 78, 221, 0.3); border-left: 4px solid var(--neon-accent); padding-left: 11px; box-shadow: inset 0 0 15px rgba(157, 78, 221, 0.1); }
+.sidebar-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; color: var(--text-muted); text-align: center; line-height: 1.5; }
+.main-wrapper { flex-grow: 1; display: flex; flex-direction: column; gap: 20px; height: 100%; position: relative; }
+.search-wrapper { position: relative; z-index: 50; }
+.search-bar { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; padding: 16px 20px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
+.search-bar::placeholder { color: #6a5e7d; }
+.search-bar:focus { border-color: var(--neon-accent); background: rgba(157, 78, 221, 0.05); box-shadow: 0 0 20px rgba(157, 78, 221, 0.2); }
+.search-dropdown { position: absolute; top: 65px; left: 0; width: 100%; max-height: 300px; overflow-y: auto; display: none; flex-direction: column; gap: 5px; padding: 10px; z-index: 100; }
+.search-dropdown.active { display: flex; }
+.dropdown-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.dropdown-item:hover { background: rgba(157, 78, 221, 0.2); border-left: 3px solid var(--neon-accent); color: #fff; }
+main.content { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; padding-right: 15px; padding-bottom: 20px; scroll-behavior: smooth; }
+main.content::-webkit-scrollbar, aside.sidebar::-webkit-scrollbar, .search-dropdown::-webkit-scrollbar { width: 6px; }
+main.content::-webkit-scrollbar-thumb, aside.sidebar::-webkit-scrollbar-thumb, .search-dropdown::-webkit-scrollbar-thumb { background: rgba(157, 78, 221, 0.4); border-radius: 10px; }
+main.content::-webkit-scrollbar-thumb:hover { background: var(--neon-accent); }
+article.card { padding: 30px; transition: all 0.3s ease; scroll-margin-top: 20px; }
+article.card:hover { border-color: rgba(157, 78, 221, 0.5); box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 20px rgba(157, 78, 221, 0.1); transform: translateY(-3px); }
+article.card h3 { font-size: 1.25rem; color: #fff; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); letter-spacing: 0.5px; }
+.text-box p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 15px; color: var(--text-main); }
+.text-box ul { margin-left: 25px; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); }
+.text-box li { margin-bottom: 8px; }
+.text-box strong { color: #fff; font-weight: 600; }
+.code-box { position: relative; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 20px; margin-top: 20px; overflow-x: auto; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
+.code-box code { font-family: 'Consolas', 'Fira Code', monospace; font-size: 0.9rem; color: #c9a0dc; white-space: pre; line-height: 1.5; }
+.copy-btn { position: absolute; top: 15px; right: 15px; background: rgba(157, 78, 221, 0.15); border: 1px solid rgba(157, 78, 221, 0.5); color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; }
+.copy-btn:hover { background: var(--neon-accent); box-shadow: 0 0 15px var(--neon-accent); }
+.copy-btn.done { background: #2a9d8f; border-color: #2a9d8f; box-shadow: 0 0 15px rgba(42, 157, 143, 0.5); }
+.highlight { animation: glowPulse 2s ease-out; }
+@keyframes glowPulse { 0% { box-shadow: 0 0 0 0 rgba(157,78,221,0.8), inset 0 0 20px rgba(157,78,221,0.5); border-color: var(--neon-accent); } 100% { box-shadow: 0 0 0 20px rgba(157,78,221,0), inset 0 0 0 rgba(157,78,221,0); border-color: var(--glass-border); } }
+.overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 900; }
+@media (max-width: 900px) {
+  .app-container { flex-direction: column; padding: 10px; gap: 10px; }
+  .mobile-header { display: flex; }
+  aside.sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: 320px; transform: translateX(-100%); background: var(--bg-dark); border-radius: 0; border: none; border-right: 1px solid var(--glass-border); }
+  aside.sidebar.open { transform: translateX(0); }
+  .overlay.active { display: block; }
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="app-container">
+    <aside class="sidebar glass" id="sidebar">
+        <div class="sidebar-top">
+            <div class="sidebar-brand">Сборник Решений</div>
+            
+            <div class="nav-group">
+                <div class="nav-title">Фокус и Продуктивность</div>
+                <ul class="nav-list">
+                    <li class="nav-item active" data-target="blk_1">Правило 2 минут (GTD)</li>
+                    <li class="nav-item" data-target="blk_2">Техника Pomodoro</li>
+                    <li class="nav-item" data-target="blk_3">Матрица Эйзенхауэра</li>
+                    <li class="nav-item" data-target="blk_4">Таймбоксинг (Timeboxing)</li>
+                    <li class="nav-item" data-target="blk_5">Состояние Потока</li>
+                    <li class="nav-item" data-target="blk_6">Закон Паркинсона</li>
+                    <li class="nav-item" data-target="blk_7">Правило «Съешь лягушку»</li>
+                    <li class="nav-item" data-target="blk_8">Метод Inbox Zero</li>
+                </ul>
+            </div>
+            
+            <div class="nav-group">
+                <div class="nav-title">Борьба с инфошумом</div>
+                <ul class="nav-list">
+                    <li class="nav-item" data-target="blk_9">Практика DIKW</li>
+                    <li class="nav-item" data-target="blk_10">Информационная диета</li>
+                    <li class="nav-item" data-target="blk_11">Разрыв эхо-камер</li>
+                    <li class="nav-item" data-target="blk_12">Правило 3 источников</li>
+                    <li class="nav-item" data-target="blk_13">Асинхронное общение</li>
+                    <li class="nav-item" data-target="blk_14">Управление пуш-уведомлениями</li>
+                    <li class="nav-item" data-target="blk_15">Иллюзия компетентности</li>
+                    <li class="nav-item" data-target="blk_16">Экстернализация памяти</li>
+                </ul>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-title">Инженерия и Код</div>
+                <ul class="nav-list">
+                    <li class="nav-item" data-target="blk_17">Применение DRY в жизни</li>
+                    <li class="nav-item" data-target="blk_18">KISS (Делай проще)</li>
+                    <li class="nav-item" data-target="blk_19">YAGNI (Вам это не понадобится)</li>
+                    <li class="nav-item" data-target="blk_20">Правило бойскаута</li>
+                    <li class="nav-item" data-target="blk_21">Борьба с техническим долгом</li>
+                    <li class="nav-item" data-target="blk_22">Утиный дебаггинг</li>
+                    <li class="nav-item" data-target="blk_23">Защитное программирование</li>
+                    <li class="nav-item" data-target="blk_24">Принцип GIGO</li>
+                </ul>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-title">Приватность и Защита</div>
+                <ul class="nav-list">
+                    <li class="nav-item" data-target="blk_25">Zero Trust в интернете</li>
+                    <li class="nav-item" data-target="blk_26">Менеджеры паролей</li>
+                    <li class="nav-item" data-target="blk_27">Защита от Фишинга</li>
+                    <li class="nav-item" data-target="blk_28">Очистка метаданных (EXIF)</li>
+                    <li class="nav-item" data-target="blk_29">Защита от OSINT</li>
+                    <li class="nav-item" data-target="blk_30">Изоляция браузеров</li>
+                    <li class="nav-item" data-target="blk_31">Аудит доступов (OAuth)</li>
+                    <li class="nav-item" data-target="blk_32">Правило наименьших привилегий</li>
+                </ul>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-title">Мозг и Здоровье</div>
+                <ul class="nav-list">
+                    <li class="nav-item" data-target="blk_33">Правило 20-20-20</li>
+                    <li class="nav-item" data-target="blk_34">Эргономика рабочего места</li>
+                    <li class="nav-item" data-target="blk_35">Защита от синего света</li>
+                    <li class="nav-item" data-target="blk_36">Дофаминовый детокс</li>
+                    <li class="nav-item" data-target="blk_37">Закрытие гештальтов (Зейгарник)</li>
+                    <li class="nav-item" data-target="blk_38">Цена переключения контекста</li>
+                </ul>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-title">Инструментарий & VPN</div>
+                <ul class="nav-list">
+                    <li class="nav-item" data-target="blk_39">Фильтрация текста (Regex)</li>
+                    <li class="nav-item" data-target="blk_40">ouVPN | Конфигурации VLESS</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            Разработано: Камалетдинов Н.Р.<br>ГАПОУ «ОКЭИ» | 2026
+        </div>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="mobile-header glass">
+            <div style="font-weight: 800; color: #fff; letter-spacing: 1px;">СБОРНИК РЕШЕНИЙ</div>
+            <button class="menu-btn" id="menuBtn">☰ МЕНЮ</button>
+        </header>
+
+        <div class="search-wrapper">
+            <input type="text" id="search" class="search-bar glass" placeholder="Мгновенный поиск по базе знаний...">
+            <div class="search-dropdown glass" id="dropdown"></div>
+        </div>
+
+        <main class="content" id="content">
+
+            <article class="card glass" id="blk_1">
+                <h3>Правило 2 минут (Getting Things Done)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Если решение задачи занимает менее двух минут, её нужно сделать немедленно, а не откладывать или заносить в список дел.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Прочли сообщение, на которое можно ответить "Да/Нет" — отвечайте сразу, не оставляйте висеть.</li>
+                        <li>Увидели мелкий баг или опечатку в коде — исправьте в текущем коммите, не заводите отдельный тикет.</li>
+                        <li>Нашли полезную команду терминала — сразу скопируйте в свой локальный справочник. Внесение задачи в планировщик займет больше времени, чем само действие.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_2">
+                <h3>Техника Pomodoro (Жесткие тайм-спринты)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Мозг не способен поддерживать абсолютную концентрацию дольше 30-40 минут. Метод дробит работу на короткие интенсивные отрезки.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Заведите таймер ровно на 25 минут. В это время закройте мессенджеры, вкладки с ютубом и пишите только код (или читайте документацию).</li>
+                        <li>После звонка таймера сделайте обязательный перерыв на 5 минут. Важно: перерыв должен быть без экрана (встать, попить воды, посмотреть в окно).</li>
+                        <li>После 4 циклов (около 2 часов) делайте большой перерыв на 20-30 минут для перезагрузки нервной системы.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_3">
+                <h3>Матрица Эйзенхауэра (Приоритизация)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Разделение всего потока задач и информации на 4 квадрата по критериям «Важно» и «Срочно», чтобы не тратить жизнь на тушение мелких пожаров.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li><strong>Важно и Срочно:</strong> Делать немедленно (упал сервер, дедлайн по проекту сегодня).</li>
+                        <li><strong>Важно, но Не срочно:</strong> Планировать в календарь (изучение нового фреймворка, рефакторинг кода, поход к врачу). Это самый полезный квадрат.</li>
+                        <li><strong>Срочно, но Не важно:</strong> Делегировать или автоматизировать скриптами (рутинные отчеты, ответы на типовые письма).</li>
+                        <li><strong>Не важно и Не срочно:</strong> Безжалостно удалять (скроллинг ленты, чтение токсичных комментариев).</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_4">
+                <h3>Таймбоксинг (Timeboxing)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Выделение фиксированного, жестко ограниченного блока времени в календаре на конкретную задачу, после чего работа над ней прекращается.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Вместо задачи "Искать баг в коде", поставьте в календарь блок: "Дебаггинг модуля авторизации с 14:00 до 15:00".</li>
+                        <li>Если за час проблема не решена, вы останавливаетесь, коммитите промежуточный результат и переключаетесь на другое.</li>
+                        <li>Это предотвращает выгорание и эффект "залипания" на одной мелкой проблеме на весь рабочий день.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_5">
+                <h3>Состояние Потока (Deep Work)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Состояние полной поглощенности когнитивно сложной задачей, при котором человек теряет чувство времени и работает на пике продуктивности.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Поток невозможен при наличии внешних раздражителей. Включите режим "Не беспокоить" на телефоне и ПК.</li>
+                        <li>Подготовьте все ресурсы заранее: откройте нужные базы данных, API, макеты, чтобы не лезть в гугл во время написания алгоритма.</li>
+                        <li>Используйте инструментальную музыку без слов или белый шум (дождь, звуки кафе), чтобы изолировать слух от окружающей среды.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_6">
+                <h3>Закон Паркинсона (Дедлайны)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Работа заполняет всё время, отпущенное на её выполнение. Если дать на простую задачу неделю, она займет неделю.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Искусственно сокращайте себе сроки. Если курсовую нужно сдать через месяц, поставьте себе внутренний дедлайн — сделать черновик через 3 дня.</li>
+                        <li>При поиске информации ставьте жесткий лимит: "У меня есть 15 минут, чтобы найти решение на StackOverflow. Если не найду — пишу костыль или иду к наставнику".</li>
+                        <li>Ограниченное время заставляет мозг игнорировать неважные детали и фокусироваться на сути.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_7">
+                <h3>Правило «Съешь лягушку»</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> «Лягушка» — это самая сложная, неприятная и важная задача дня, которую вы постоянно откладываете.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Определяйте свою главную "лягушку" вечером накануне.</li>
+                        <li>Делайте её самой первой задачей утром, до проверки почты, чатов и чтения новостей.</li>
+                        <li>Решение самой трудной проблемы с утра дает мощный выброс дофамина и делает весь остаток дня легким и продуктивным.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_8">
+                <h3>Метод Inbox Zero (Нулевой ящик)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Стратегия управления входящей информацией, при которой папка "Входящие" (почта, сохраненные сообщения) всегда должна оставаться пустой.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Не используйте "Входящие" как склад. Каждое письмо/сообщение должно быть обработано.</li>
+                        <li>Примените алгоритм: Удалить (спам), Делегировать (переслать), Ответить (если < 2 минут), или Перенести в планировщик задач.</li>
+                        <li>Обрабатывайте почту батчами (пачками) 2 раза в день, а не дергайтесь на каждое новое уведомление.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_9">
+                <h3>Практика DIKW (Трансформация данных)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Не копите сырые ссылки. Данные (Data) бесполезны, пока вы не пропустите их через себя и не превратите в Знания (Knowledge).</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Нашли полезную статью по программированию — не кидайте ссылку в "Избранное", вы её никогда не откроете.</li>
+                        <li>Прочитайте её. Выпишите 2-3 практических вывода или скопируйте нужный блок кода в свой локальный HTML-справочник.</li>
+                        <li>Удалите исходную ссылку. Вы сохранили Знание, а не указатель на чужие Данные.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_10">
+                <h3>Информационная диета</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Потребление информации ничем не отличается от потребления пищи. Низкокачественный контент вызывает ментальное "ожирение" и усталость.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Отпишитесь от 80% телеграм-каналов и пабликов, которые публикуют мемы и "быстрые факты".</li>
+                        <li>Замените алгоритмические ленты (где ИИ решает, что вам смотреть) на RSS-ридеры или email-рассылки от конкретных профессионалов.</li>
+                        <li>Читайте длинные технические статьи и книги. Это тренирует способность удерживать длинный фокус внимания.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_11">
+                <h3>Разрыв Пузыря Фильтров (Эхо-камер)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Алгоритмы соцсетей показывают вам только ту информацию, с которой вы уже согласны, лишая вас объективной картины мира.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Специально подписывайтесь на авторитетные источники, которые транслируют противоположную вам точку зрения (в технологиях, бизнесе, архитектуре кода).</li>
+                        <li>Периодически чистите кэш и историю браузера или используйте режим Инкогнито, чтобы сбросить рекомендательные алгоритмы поисковиков.</li>
+                        <li>Не доверяйте первой странице выдачи Google как истине в последней инстанции.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_12">
+                <h3>Правило 3 источников (Верификация)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Любая критически важная информация (особенно в ИТ и безопасности) считается ложной, пока не подтверждена минимум тремя независимыми ресурсами.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Нашли на форуме решение, как исправить ошибку базы данных? Не копируйте слепо.</li>
+                        <li>Найдите упоминание этой же команды в официальной документации (docs).</li>
+                        <li>Проверьте GitHub Issues текущего репозитория — возможно, этот код устарел или содержит уязвимость в новой версии.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_13">
+                <h3>Асинхронное общение</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Переход от ожидания мгновенных ответов к режиму, когда люди отвечают в удобное для них время, не прерывая свой рабочий процесс.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Пишите самодостаточные сообщения. Вместо "Привет, ты тут?" пишите "Привет! Возникла ошибка 404 в модуле X при запросе Y. Логи прикрепил. Глянь, как освободишься".</li>
+                        <li>Отключите звук и вибрацию на 90% чатов. Оставьте звонки только для форс-мажоров.</li>
+                        <li>Уважайте фокус других разработчиков: не дергайте их по пустякам, соберите вопросы в пул и задайте разом.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_14">
+                <h3>Управление пуш-уведомлениями</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Уведомление — это запрос чужого приложения на ваше личное время и внимание. Вы должны контролировать этот процесс, а не маркетологи.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Отключите ВСЕ уведомления на телефоне по умолчанию (магазины, игры, соцсети).</li>
+                        <li>Оставьте пуши только для критических вещей: банковские операции, звонки от семьи, мониторинг серверов (Zabbix/Grafana).</li>
+                        <li>Уберите бейджи (красные кружочки с цифрами) с иконок приложений — они создают искусственный стресс.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_15">
+                <h3>Иллюзия компетентности</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Просмотр десятков туториалов на YouTube создает ложное ощущение, что вы умеете программировать, хотя вы просто потребляете контент.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Прекратите смотреть обучающие видео без параллельного написания кода.</li>
+                        <li>Посмотрели концепт (например, работу с Fetch API) — закройте видео и попытайтесь написать код по памяти.</li>
+                        <li>Только столкнувшись с ошибками и читая документацию, вы превращаете иллюзию в реальный навык.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_16">
+                <h3>Экстернализация памяти</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Мозг — это процессор для генерации идей, а не жесткий диск для их хранения. Не пытайтесь запомнить команды, порты и синтаксис.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Используйте концепцию "Второго мозга". Записывайте все сложные конфигурации (как настройки nginx или VLESS) в свой локальный сборник решений.</li>
+                        <li>Создавайте шаблоны для повторяющихся задач.</li>
+                        <li>Разгрузив память от зубрежки синтаксиса, вы освобождаете ресурсы для проектирования архитектуры.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_17">
+                <h3>Применение принципа DRY в жизни (Don't Repeat Yourself)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> "Не повторяй себя". Если вы делаете одно и то же действие больше двух раз, его нужно автоматизировать или зашаблонизировать.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Часто отвечаете клиентам одно и то же? Создайте текстовый файл с готовыми шаблонами ответов.</li>
+                        <li>Каждый день вводите длинную команду в терминал? Напишите alias (сокращение) в файле `.bashrc`.</li>
+                        <li>Постоянно настраиваете начальный HTML-скелет проекта? Сделайте базовый репозиторий на GitHub и просто клонируйте его.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_18">
+                <h3>Принцип KISS (Keep It Simple, Stupid)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Делай проще. Большинство систем работают лучше всего, если они остаются простыми, а не усложняются сверх меры.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Не используйте сложный фреймворк (React/Angular) для создания простой страницы-визитки. Хватит чистого HTML и CSS.</li>
+                        <li>Если код можно написать в 3 понятные строки, не пытайтесь сжать его в 1 нечитаемую строку с помощью сложных тернарных операторов.</li>
+                        <li>Простой код легче дебажить и проще передать другому разработчику.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_19">
+                <h3>Принцип YAGNI (You Aren't Gonna Need It)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> "Вам это не понадобится". Отказ от добавления функциональности, которая "возможно пригодится в будущем".</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Пишите код только для тех требований, которые есть прямо сейчас. Не стройте архитектуру под миллион пользователей, если у вас их ноль.</li>
+                        <li>Излишнее планирование будущего функционала усложняет текущую кодовую базу и тормозит релиз продукта.</li>
+                        <li>Решайте проблемы по мере их реального поступления.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_20">
+                <h3>Правило Бойскаута (Организация кода)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> "Оставь место стоянки чище, чем оно было до твоего прихода". Применяется к рефакторингу и работе в команде.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Зашли в чужой файл, чтобы исправить один баг, и увидели неиспользуемую переменную? Удалите её.</li>
+                        <li>Увидели кривое форматирование или отсутствие отступов? Поправьте.</li>
+                        <li>Постоянные мелкие улучшения кода не требуют выделения отдельных недель на рефакторинг и поддерживают проект в чистоте.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_21">
+                <h3>Борьба с техническим долгом</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Технический долг берется, когда вы используете «костыли» ради быстрого релиза. Если долг не отдавать, проект рухнет под собственной тяжестью.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Всегда оставляйте метки `// TODO:` в коде там, где применили временное решение.</li>
+                        <li>Выделяйте 20% времени каждого спринта исключительно на отдачу техдолга: обновление библиотек, переписывание грязных функций.</li>
+                        <li>Не бойтесь сказать менеджеру: "Мы не можем пилить новые фичи, пока не перепишем архитектуру базы данных".</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_22">
+                <h3>Утиный Дебаггинг (Rubber Duck Debugging)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Проговаривание проблемы вслух заставляет мозг структурировать информацию и самостоятельно находить ошибки в логике.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Застряли на сложном баге? Не зовите сразу senior-разработчика.</li>
+                        <li>Поставьте на стол резинового утенка (или любую фигурку) и начните объяснять ему вслух, построчно, что делает ваш код и что ожидается на выходе.</li>
+                        <li>В 80% случаев на середине объяснения вы сами скажете: "А, вот тут переменная не инициализирована!".</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_23">
+                <h3>Защитное программирование (Defensive Programming)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Подход к разработке, основанный на параноидальном принципе: "Всё, что может сломаться — сломается, а юзер введет неадекватные данные".</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Никогда не доверяйте данным от пользователя (из форм, API). Всегда валидируйте тип данных, длину и содержимое перед отправкой в базу.</li>
+                        <li>Используйте конструкции `try / catch` для отлова ошибок при обращении к внешним серверам или чтении файлов.</li>
+                        <li>Программа не должна падать с непонятным экраном. Она должна корректно обработать сбой и выдать пользователю понятный текст ошибки.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_24">
+                <h3>Принцип GIGO (Мусор на входе — Мусор на выходе)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Качество результатов работы системы напрямую зависит от качества входящих данных. Относится и к коду, и к процессам.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Не пишите код, если Техническое Задание (ТЗ) размыто, противоречиво или является "мусором". Вы получите мусорный продукт.</li>
+                        <li>Требуйте от коллег/заказчиков конкретики. Верните задачу на доработку, если в ней не описаны граничные условия.</li>
+                        <li>При проектировании баз данных настраивайте строгие связи и типы колонок, чтобы физически не позволить записать туда мусорные значения.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_25">
+                <h3>Zero Trust в интернете (Нулевое доверие)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Не доверяй ни открытым Wi-Fi сетям, ни "закрытым" корпоративным контурам. Любой трафик может быть перехвачен.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Никогда не вводите пароли и не заходите в банки через публичный Wi-Fi (в кафе/метро) без включенного VPN с шифрованием.</li>
+                        <li>Всегда проверяйте наличие `https://` и замочка в адресной строке.</li>
+                        <li>Относитесь к любому письму с вложением как к потенциально вирусному, даже если оно пришло со знакомого адреса (его могли взломать).</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_26">
+                <h3>Менеджеры паролей</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Человек физически не способен запомнить 50 разных, сложных 16-символьных паролей. Использование одного пароля везде — путь к взлому.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Установите надежный менеджер паролей (KeePassXC для локального хранения или Bitwarden).</li>
+                        <li>Сгенерируйте для каждого сайта случайный пароль длиной от 16 символов (например: `k#9Lp@1xZ5mQ$v8N`).</li>
+                        <li>Запомните только один — Мастер-пароль, который открывает базу. Он должен быть длинной фразой (например: `СинийКотПрыгнулВКосмос2026!`).</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_27">
+                <h3>Защита от Фишинга (Социальная инженерия)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Взлом через обман. Мошенники создают копии сайтов или присылают тревожные письма, чтобы вы сами отдали им доступы.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Сработало чувство паники ("Ваш аккаунт заблокирован! Срочно перейдите по ссылке")? Сделайте паузу на 1 минуту. Банки и сервисы так не работают.</li>
+                        <li>Внимательно читайте адресную строку. `vk.com` и `vk-login-security.com` — это разные домены.</li>
+                        <li>Никогда не переходите по ссылкам из писем. Зайдите на сайт сервиса самостоятельно, вбив адрес руками.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_28">
+                <h3>Очистка метаданных (EXIF)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Любая фотография, сделанная на смартфон, несет в себе скрытый текстовый блок (EXIF), раскрывающий вашу приватность.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>EXIF содержит точные GPS-координаты снимка, дату, модель телефона и версию ОС.</li>
+                        <li>Перед отправкой оригиналов фотографий (особенно в виде документов) в публичные чаты, очищайте метаданные через утилиты (ExifTool или свойства файла в Windows).</li>
+                        <li>Популярные мессенджеры (Telegram/WhatsApp) при сжатии фото удаляют EXIF автоматически, но при отправке "Как файл" — сохраняют всё.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_29">
+                <h3>Защита от OSINT (Сбор данных из открытых источников)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Злоумышленники собирают досье на основе ваших же публичных действий в соцсетях, форумах и слитых базах.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Соблюдайте сегментацию. Не используйте один и тот же никнейм и email для профессиональных форумов (GitHub) и развлекательных порталов/игр.</li>
+                        <li>Скройте номер телефона, дату рождения и список родственников в настройках приватности ВКонтакте/Telegram.</li>
+                        <li>Проверяйте свой email в сервисах типа `Have I Been Pwned`, чтобы знать, в каких утечках баз данных фигурирует ваш пароль.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_30">
+                <h3>Изоляция браузеров (Контейнеризация)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Рекламные трекеры и скрипты следят за вами, связывая вашу рабочую деятельность с личными интересами.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Разделите рабочие процессы по разным браузерам. Например: Chrome — только для программирования и рабочих аккаунтов. Firefox/Brave — для серфинга и YouTube.</li>
+                        <li>Используйте плагины изоляции (например, Facebook Container), которые не дают соцсетям собирать куки с других вкладок.</li>
+                        <li>Регулярно очищайте кэш и файлы cookie.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_31">
+                <h3>Аудит доступов (OAuth)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Кнопки "Войти через Google/ВК/Telegram" удобны, но они выдают сторонним приложениям права на чтение ваших данных.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Раз в полгода заходите в настройки безопасности своих основных аккаунтов (Google/Telegram) в раздел "Связанные приложения" или "Активные сессии".</li>
+                        <li>Безжалостно отзывайте права у игр, тестов и сервисов, которыми не пользовались больше месяца.</li>
+                        <li>Внимательно читайте, какие именно права просит приложение. Игре "Три в ряд" не нужен доступ к вашей контактной книге.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_32">
+                <h3>Принцип наименьших привилегий (POLP)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Учетная запись или программа должна иметь доступ только к тем ресурсам, которые ей абсолютно необходимы для работы.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Не сидите за своим домашним/рабочим компьютером под учетной записью "Администратор". Создайте юзера с базовыми правами. Это защитит от автоматической установки вирусов.</li>
+                        <li>Если вы пишете скрипт для чтения логов, не давайте ему права на запись или удаление файлов в системе.</li>
+                        <li>При настройке баз данных создавайте отдельных пользователей (Read-Only) для разных микросервисов.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_33">
+                <h3>Физиология и мониторы (Защита сетчатки)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Мерцание монитора и синий спектр подсветки (Blue Light) разрушают мелатонин и перенапрягают цилиарную мышцу глаза.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Соблюдайте правило 20-20-20 (каждые 20 минут фокус вдаль на 20 секунд).</li>
+                        <li>Используйте темные темы интерфейсов (как Liquid Glass в этом справочнике) — черный фон физически отключает пиксели на OLED-экранах или блокирует подсветку, снижая нагрузку.</li>
+                        <li>За 2 часа до сна обязательно включайте "Ночной режим" в ОС, который делает экран желтоватым (убирает синий спектр).</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_34">
+                <h3>Эргономика рабочего места</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Программирование — это сидячий труд, который уничтожает позвоночник и сосуды шеи, что ведет к гипоксии мозга и падению продуктивности.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Верхняя кромка монитора должна находиться ровно на уровне ваших глаз. Если приходится смотреть вниз — подложите под монитор книги.</li>
+                        <li>Ступни должны полностью стоять на полу, а угол в коленях — 90 градусов.</li>
+                        <li>Вставайте и разминайте шею каждые 45 минут. Застои крови в шейном отделе — главная причина головных болей к вечеру.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_35">
+                <h3>Капли для глаз и сухой воздух</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> При напряженном чтении кода человек моргает в 3-4 раза реже нормы. Это приводит к Синдрому Сухого Глаза.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Никакие капли "от покраснения" использовать нельзя — они сужают сосуды и усугубляют проблему.</li>
+                        <li>Используйте только увлажняющие капли без консервантов (искусственная слеза).</li>
+                        <li>Настройте влажность в комнате (купите увлажнитель). Мониторы в сухом воздухе буквально высушивают роговицу.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_36">
+                <h3>Дофаминовый детокс (Восстановление мотивации)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Соцсети, шортсы и игры дают мозгу дешевый дофамин. После этого писать сложный код становится физически больно, так как мозг требует легкого удовольствия.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Устройте себе день (например, воскресенье), когда вы полностью отказываетесь от потребления быстрого контента, игр и соцсетей.</li>
+                        <li>Можно: читать бумажные книги, гулять, программировать, скучать.</li>
+                        <li>Это "перезагружает" рецепторы, и на следующий день работа с сухой документацией снова начинает приносить удовлетворение.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_37">
+                <h3>Закрытие гештальтов (Эффект Зейгарник)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Мозг постоянно крутит в фоне мысли о незавершенных задачах, съедая оперативную память и вызывая тревожность.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>В конце рабочего дня запишите ВСЕ недоделанные дела на листок бумаги или в таск-трекер.</li>
+                        <li>Создайте ритуал закрытия дня: закрыть IDE, выключить ПК, сказать себе "Работа окончена".</li>
+                        <li>Перенос задач на внешний носитель подает мозгу сигнал, что информацию можно удалить из активной памяти. Вы начнете лучше спать.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_38">
+                <h3>Снижение когнитивного трения</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Любое лишнее действие, клик или ожидание загрузки вызывает микро-раздражение, которое накапливается и приводит к усталости.</p>
+                    <p><strong>Как применять в жизни:</strong></p>
+                    <ul>
+                        <li>Выучите горячие клавиши (Hotkeys) вашей среды разработки (VS Code/PyCharm) и ОС. Отказ от мышки ускоряет работу на 30%.</li>
+                        <li>Настройте автодополнение и линтеры кода, чтобы не тратить мыслетопливо на поиск пропущенной запятой.</li>
+                        <li>Сделайте этот сборник решений стартовой страницей браузера.</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_39">
+                <h3>Очистка текстового мусора (Сниппет Regex)</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> При копировании документации из сети в текст попадают неразрывные пробелы и спецсимволы, ломающие форматирование.</p>
+                    <p><strong>Применение (Python):</strong> Этот скрипт удаляет двойные пробелы и оставляет только текст и базовую пунктуацию.</p>
+                </div>
+                <div class="code-box">
+                    <code>import re
+raw_text = "Код   с кривыми \t отступами и #мусором"
+pattern = r"[\s]{2,}|[^\w\s\.\,\-\?]"
+clean_text = re.sub(pattern, " ", raw_text).strip()
+print(clean_text)</code>
+                    <button class="copy-btn">Копировать</button>
+                </div>
+            </article>
+
+            <article class="card glass" id="blk_40">
+                <h3>ouVPN | VLESS Конфигурации для защиты трафика</h3>
+                <div class="text-box">
+                    <p><strong>Суть:</strong> Защищенные узлы для обхода ограничений и шифрования трафика по технологии XTLS-Reality. Никакие публичные сети не смогут перехватить ваши данные.</p>
+                    <p><strong>Как применять:</strong> Скопируйте нужную строку. Откройте клиент (v2rayN, Nekobox, v2rayNG, Shadowrocket) и выберите «Импорт профиля из буфера обмена».</p>
+                </div>
+                <div class="code-box">
+                    <code>vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@germany.superbuba.top:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=germany.superbuba.top&fp=random&pbk=rCkSHJ7goy7ZvSlau4LfXF-QLloOJMNeMxpeeQtwtVs&sid=4fa44664f6a566d3&spx=%2F&type=tcp#DE%20%F0%9F%87%A9%F0%9F%87%AA%20ouVPN
+
+vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@nl.superbuba.top:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=nl.superbuba.top&fp=chrome&pbk=z37XIezsPyfMgmdXyFd9qT4C4maDAs1OcRt-wfyrXVo&sid=9c2378562188c3cb&spx=%2F&type=tcp#NL%20%F0%9F%87%B3%F0%9F%87%B1%20ouVPN
+
+vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@jp.superbuba.top:443?mode=gun&security=reality&encryption=none&authority=&pbk=IBd0fFI3UGxCVcwB7HjnYgCAjDd5hczwR742wsY1Akw&fp=chrome&spx=%2F&allowinsecure=0&type=grpc&serviceName=&sni=jp.superbuba.top&sid=9c2378562188c3cb#JP+%F0%9F%87%AF%F0%9F%87%B5+ouVPN
+
+vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@lt.superbuba.top:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=lt.superbuba.top&fp=random&pbk=vrcsm8L_tY7sNbnCEdLCEjOthh_w9bdWS3wFPgsIomk&sid=4fa44664f6a566d3&spx=%2F&type=tcp#LT%20%F0%9F%87%B1%F0%9F%87%B9%20ouVPN
+
+vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@sweden.superbuba.top:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=sweden.superbuba.top&fp=random&pbk=G2U8_BvRAgcOw0sX8u_0yYdVAlD8CWLSi-uYjvH07hw&sid=4fa44664f6a566d3&spx=%2F&type=tcp#SE%20%F0%9F%87%B8%F0%9F%87%AA%20ouVPN
+
+vless://5be800a1-742f-4c1a-a03f-b0dce2bc04b1@fr.superbuba.top:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=fr.superbuba.top&fp=random&pbk=AYQOZFxjvHN-RIzKYEibwFiFsp03cdlWGdCmyFfuNVc&sid=4fa44664f6a566d3&spx=%2F&type=tcp#FR%20%F0%9F%87%AB%F0%9F%87%B7%20ouVPN</code>
+                    <button class="copy-btn">Копировать</button>
+                </div>
+            </article>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    const d = document;
+    const sidebar = d.getElementById('sidebar');
+    const menuBtn = d.getElementById('menuBtn');
+    const overlay = d.getElementById('overlay');
+    const search = d.getElementById('search');
+    const dropdown = d.getElementById('dropdown');
+    const cards = d.querySelectorAll('.card');
+    const navItems = d.querySelectorAll('.nav-item');
+    const copyBtns = d.querySelectorAll('.copy-btn');
+
+    const toggleMenu = () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+    };
+    
+    menuBtn.onclick = toggleMenu;
+    overlay.onclick = toggleMenu;
+
+    navItems.forEach(item => {
+        item.onclick = () => {
+            navItems.forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            
+            if (window.getComputedStyle(menuBtn).display !== 'none') {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+            
+            const targetId = item.getAttribute('data-target');
+            const targetCard = d.getElementById(targetId);
+            if(targetCard) {
+                const content = document.getElementById('content');
+                content.scrollTo({
+                    top: targetCard.offsetTop - 20,
+                    behavior: 'smooth'
+                });
+                targetCard.classList.remove('highlight');
+                void targetCard.offsetWidth; 
+                targetCard.classList.add('highlight');
+            }
+        };
+    });
+
+    search.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase().trim();
+        dropdown.innerHTML = '';
+        if(!val) {
+            dropdown.classList.remove('active');
+            cards.forEach(c => c.style.display = 'block');
+            return;
+        }
+        let hasMatches = false;
+        cards.forEach(card => {
+            const title = card.querySelector('h3').textContent;
+            const textContent = card.textContent.toLowerCase();
+            if(textContent.includes(val)) {
+                card.style.display = 'block';
+                hasMatches = true;
+                const div = d.createElement('div');
+                div.className = 'dropdown-item';
+                div.textContent = title;
+                div.onclick = () => {
+                    search.value = '';
+                    dropdown.classList.remove('active');
+                    cards.forEach(c => c.style.display = 'block');
+                    const content = document.getElementById('content');
+                    content.scrollTo({
+                        top: card.offsetTop - 20,
+                        behavior: 'smooth'
+                    });
+                    card.classList.remove('highlight');
+                    void card.offsetWidth;
+                    card.classList.add('highlight');
+                };
+                dropdown.appendChild(div);
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        if(hasMatches) {
+            dropdown.classList.add('active');
+        } else {
+            const empty = d.createElement('div');
+            empty.className = 'dropdown-item';
+            empty.textContent = 'Ничего не найдено';
+            dropdown.appendChild(empty);
+            dropdown.classList.add('active');
+        }
+    });
+
+    d.addEventListener('click', (e) => {
+        if(!e.target.closest('.search-wrapper')) {
+            dropdown.classList.remove('active');
+        }
+    });
+
+    copyBtns.forEach(btn => {
+        btn.onclick = () => {
+            const codeBox = btn.parentElement.querySelector('code');
+            navigator.clipboard.writeText(codeBox.innerText).then(() => {
+                btn.innerText = 'Скопировано!';
+                btn.classList.add('done');
+                setTimeout(() => {
+                    btn.innerText = 'Копировать';
+                    btn.classList.remove('done');
+                }, 1500);
+            }).catch(() => {
+                btn.innerText = 'Ошибка';
+            });
+        };
+    });
+</script>
+</body>
+</html>
